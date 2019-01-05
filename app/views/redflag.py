@@ -89,7 +89,6 @@ def add_redflag(current_user):
     if not request.content_type == 'application/json':
         return jsonify({"failed": 'Content-type must be application/json'}), 415
     request_data = request.get_json()
-    helper = Helper()
     try:
         if not validate_email(request_data['user_email']):
             return jsonify({"message": "User email is invalid"}), 400
