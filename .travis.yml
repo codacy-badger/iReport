@@ -1,15 +1,19 @@
-virt
+#language to use in tavis containers
 language: python
-
 python:
-- "3.6.7"
-
+    - "3.6.7"
+services:
+  - postgresql
+before_script:
+  - psql -c 'create database ireporter;' -U postgres
+# command to install dependencies
 install:
-- pip install -r requirements.txt
-
+  - pip install -r requirements.txt
+# command to run tests
 script:
+  - python -m pytest --cov
 
-- python -m pytest --cov
+sudo: required
 
-after_success:
+after_success: 
 - coveralls
