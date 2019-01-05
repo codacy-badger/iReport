@@ -20,7 +20,6 @@ def get_timestamp():
 
 @flags.route('/api/v1/redflags')
 @token_required
-@swag_from('../doc/get_all_redflags.yml')
 def get_redflags(current_user):
     if not db.isAdmin(current_user.user_id):
         return response_message('unauthorized operation', 'Only admin users can view all_flags orders', 401)
@@ -49,7 +48,6 @@ def get_redflags(current_user):
 
 @flags.route('/api/v1/redflags/<int:id>')
 @token_required
-@swag_from('../doc/get_a_redflag.yml')
 def get_a_redflag(current_user, id):
     """
     return redflag details for a specific redflag
@@ -87,7 +85,6 @@ def get_redflags(current_user):
 # POST redflags
 @flags.route('/api/v1/redflags', methods=['POST'])
 @token_required
-@swag_from('../doc/new_redflag.yml')
 def add_redflag(current_user):
     if not request.content_type == 'application/json':
         return jsonify({"failed": 'Content-type must be application/json'}), 415
@@ -140,7 +137,6 @@ def add_redflag(current_user):
 
 # PUT /redflags/<redflagId>/cancel
 @flags.route('/api/v1/redflags/<int:id>/cancel', methods=['PUT'])
-@swag_from('../doc/cancel_redflagl.yml')
 @token_required
 
 def delete_redflag_request(current_user, id):
@@ -161,7 +157,6 @@ def delete_redflag_request(current_user, id):
 
 @flags.route('/api/v1/redflags/<int:id>/presentLocation', methods=['PUT'])
 @token_required
-@swag_from('../doc/change_present_locationn.yml')
 def change_present_location(current_user, id):
     if not db.isAdmin(current_user.user_id):
         return response_message('Unauthorized', 'Not enough access previleges', 401)
@@ -187,7 +182,6 @@ def change_present_location(current_user, id):
 
 @flags.route('/api/v1/redflags/<int:id>/status', methods=['PUT'])
 @token_required
-@swag_from('../doc/status.yml')
 def change_order_status(current_user, id):
     if not db.is_admin(current_user.user_id):
         return response_message('Unauthorized', 'Not enough access privileges', 401)
@@ -216,7 +210,6 @@ def change_order_status(current_user, id):
 
 @flags.route('/api/v1/redflags/<int:id>/destination', methods=['PUT'])
 @token_required
-@swag_from('../doc/changedestination.yml')
 def change_destination(current_user, id):
     rdata = request.get_json()
     if not "redflag_type" in rdata:
@@ -265,8 +258,8 @@ def sendemail(email, subject, body):
         MAIL_SERVER='smtp.gmail.com',
         MAIL_PORT=465,
         MAIL_USE_SSL=True,
-        MAIL_USERNAME=os.environ.get('trulysEmail'),
-        MAIL_PASSWORD=os.environ.get('trulysPass')
+        MAIL_USERNAME=os.environ.get('iReporter'),
+        MAIL_PASSWORD=os.environ.get('ireport123456')
 
     )
     mail = Mail(app)
