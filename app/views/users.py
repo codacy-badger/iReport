@@ -7,9 +7,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flasgger import swag_from
 from validate_email import validate_email
 from app.database.db import Database
-from app.model.models import User
-# from app.views. import sendemail
-import os
+from app.views.redflag import sendemail
+from app.models.model import User 
+import os, config
 from flask_cors import CORS
 
 user = Blueprint('user1', __name__)
@@ -37,7 +37,7 @@ def register():
         firstname = request_data['firstname']
         lastname = request_data['lastname']
         othernames = request_data['othername']
-        phonenumber = request_data['phonenumber']
+        phone_number = request_data['phone_number']
         email = request_data['email']
         username = request_data['username']
         str(username).replace(" ", "")
@@ -76,7 +76,7 @@ def register():
         password = generate_password_hash(request_data['password'])
         db.insert_into_user(firstname, lastname, othernames, username, email, phone_number, password)
         sendemail(email, 'Welcome to iReporter Journalism platform',
-            'Greeting to you  ' + username + ',\n Thank you for joining this platform which is a self participating platform to stop corruption in our country\nTo do so please use the platform to report, record an audio, video, image about corupt minds. No need to be afraid\nRemember comrruption starts with you if you keep silent\n Lets join hands to fight it\nRegards iReporter')
+            'Greetings to you  ' + username + ',\n Thank you for joining this platform which is a self participating platform to stop corruption in our country\nTo do so please use the platform to report, record an audio, video, image about corupt minds. No need to be afraid\nRemember comrruption starts with you if you keep silent\n Lets join hands to fight it\nRegards iReporter')
         return response_message('Success', 'Account successfully created', 201)
     except KeyError as item:
         return jsonify({'Error': str(item) + ' is missing'}), 400
@@ -109,7 +109,8 @@ def login_user():
 
         new_user = User(
             db_user[0], db_user[1], db_user[2], db_user[3],
-            db_user[4], db_user[6])
+            db_user[4], db_user[5], db_user[6], db_user[7], db_user[8])
+
         if not check_password_hash(new_user.password, password):
             return response_message('Failed', 'email or password is invalid', 400)
         payload = {
@@ -130,26 +131,30 @@ def login_user():
         if token:
             return jsonify({"message": "logged in successfully ", "auth_token": token.decode('UTF-8'),'user_id':new_user.user_id,'isADmin':new_user.isADmin}), 200
 
-    except Exception as er:
+    except :
         return response_message('Failed', 'email or password is invalid', 400)
 
 
 @user.route('/api/v1/users', methods=['GET'])
 @token_required
 def get_users(current_user):
-    if not db.isADmin(current_user.user_id):
+    if not db.isAdmin(current_user.user_id):
         return response_message('unauthorized operation', 'Only admin users can view all users', 401)
+
     users = Database().get_users()
     user_list = []
     for user in users:                        
         user_dict = {
             "user_id": user[0],
-            "fullname": user[1],
-            "username": user[2],
-            "email": user[3],
-            "phone_number": user[5],
-            "isADmin": user[6],
-            "joined": user[7]
+            "firstname": user[1],
+            "lastname": user[2],
+            "othernames":user[3],
+            "username": user[4],
+            "email": user[5],
+            "phone_number": user[6],
+            "password":user[7],
+            "isAdmin": user[8],
+            "register_on": user[9]
         }
     user_list.append(user_dict)
 
@@ -158,38 +163,15 @@ def get_users(current_user):
         
     return jsonify({"users": user_list}), 200
 
-# admin access to the red flags
+def get_current_user_id(self):
 
-@user.route('/api/v2/users/<int:id>/parcels', methods=['GET'])
-@token_required
-# @swag_from('../doc/user_parcels.yml')
-def get_user_redflag(current_user, id):
-    if not db.is_admin(current_user.user_id):
-        if current_user.user_id != id:
-            return response_message('unauthorized operation', 'You do not have permissions to access that', 401)
-
-    if not db.get_user_by_value('users', 'user_id', id) is None:
-       
         try:
-            redflag_list = []
+            token = get_token()
+            data = jwt.decode(token, os.environ.get('talieatalia'))
+            return data['user_id']
 
-            for redflag in db.get_user_redflag(id):
-                redflag_dict = {
-                    'flag_id':flag_id,
-                    'location': location,
-                    'type': type,
-                    'description': description,
-                    'image': image,
-                    'video' : video,
-                    str(dt.utcnow()) : created_on,
-                    'created_by' : created_by
-                }
-                redflag_list.append(redflag_dict)
-            return jsonify({"redflags": redflag_list}), 200
-            
-        except IndexError as e:
-            return jsonify({"message": 'User does not exist'}), 404
 
-    else:
-        return jsonify({"message": 'User does not exist'}), 404
-
+        except jwt.ExpiredSignatureError:
+            return 'expired. Please log in again.', 401
+        except jwt.InvalidTokenError:
+            return 'Invalid token. Please log in again.', 401

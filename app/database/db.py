@@ -43,8 +43,8 @@ class Database(object):
             flag_id SERIAL PRIMARY KEY,
             user_id INTEGER NOT NULL REFERENCES users(user_id),
             description VARCHAR (500),
-            user_email VARCHAR (50),
-            status VARCHAR (25) DEFAULT 'Action to be taken',
+            email VARCHAR (50),
+            status VARCHAR (25) DEFAULT 'Received',
             location VARCHAR (50),
             createdby VARCHAR(50)
             createdOn NOT NULL DEFAULT CURRENT_TIMESTAMP,last_modifiedOn DEFAULT CURRENT_TIMESTAMP)"""
@@ -53,8 +53,7 @@ class Database(object):
 
     def insert_into_user(self, firstname, lastname, othername, username, email, phone_number,password):
         """
-        Query to add a new user
-        :admin,user
+        Query to add a new user:admin,user
         """
         user = """INSERT INTO users(firstname, lastname, othername, username, email, phone_number,password)
                 VALUES ('{}','{}','{}','{}','{}','{}','{}');
@@ -62,16 +61,16 @@ class Database(object):
         self.cursor.execute(user)
         self.connection.commit()
 
-    def insert_into_redflag(self, redflag_description, user_id, user_email, status,createdby, location):
+    def insert_into_redflag(self, redflag_id,user_id, description, status,createdby, createdOn, media, location):
         """
         Query for a user to add a new redflag to the database
         """
-        redflag_query = """INSERT INTO redflag(redflag_description, user_id, user_email, status,createdby, location)
-                    VALUES('{}','{}','{}','{}','{}','{}'); """.format(redflag_description, user_id, user_email, sender_phonenumber, username_name, location)
-        self.cursor.execute(redflag_query)
+        flag = """INSERT INTO redflag(redflag_id, user_id, description, status,createdby, location)
+                    VALUES('{}','{}','{}','{}','{}','{}','{}); """.format(redflag_id, user_id, description,createdby, createdOn, media, location)
+        self.cursor.execute(flag)
         self.connection.commit()
 
-    def get_all_redflags(self):
+    def get_redflags(self):
         """
         Query gets all redflag-posts that are available
         :admin
@@ -92,19 +91,18 @@ class Database(object):
             user_list.append(user)
         return user_list
 
-    def get_redflag_by_value(self, table_name, table_column, value):
+    def get_redflag_by_id(self, table_name, table_column, id):
         """
-        Function  gets items from the
-        same table with similar ids :admin
+        Function  gets items from the same table with similar ids :admin
         """
         try:
 
             query = "SELECT * FROM {} WHERE {} = '{}';".format(
-                table_name, table_column, value)
+                table_name, table_column, id)
             self.cursor.execute(query)
             results = self.cursor.fetchone()
             return results
-        except Exception as e:
+        except:
             return None
 
     def get_user_by_value(self, table_name, column, value):
@@ -119,8 +117,7 @@ class Database(object):
 
     def get_user_redflags(self, user_id):
         """
-        Select from redflags where redflag.user_id = user.user_id
-        :Admin
+        Select from redflags where redflag.user_id = user.user_id :Admin
         """
         query = "SELECT * FROM  redflags WHERE user_id = '{}';".format(user_id)
         self.cursor.execute(query)
@@ -129,60 +126,43 @@ class Database(object):
             return results
         return "No redflags yet"
 
-    def update_redflag_status(self, stat, id):
+    def update_redflag_status(self, status1, id):
         """
-        update table redflags set status ='' where redflag_id = id
-        :Admin
+        update table redflags set status ='' where redflag_id = id :Admin
         """
 
-        status = ['Resolved', 'under_investigation', 'Rejected', 'on_going']
-        if stat in status:
+        status = ['received', 'resolved', 'under_investigation', 'Rejected', 'on_going']
+        if status1 in status:
             query = """UPDATE redflags SET status = '{}'
-                        WHERE redflag_id ='{}' """.format(stat, id)
+                        WHERE redflag_id ='{}' """.format(status1, id)
             self.cursor.execute(query)
             self.connection.commit()
             return "status updated successfully"
         return "status error"
 
-    def is_post_Resolved(self, id):
+    def is_redflag_resolved(self, id):
         sql = "SELECT status FROM redflags WHERE redflag_id ='{}'".format(id)
         self.cursor.execute(sql)
         self.connection.commit()
         post = self.cursor.fetchone()
-        status = post[0]
-        if status == 'Resolved':
+        status = post[0]        
+        if status == 'resolved':
             return True
         return False
+
+    
+    def delete_redflag(self, id):
+        sql = "UPDATE redflags SET status='{}' WHERE redflag_id = '{}'".format('deleted', id)
+        self.cursor.execute(sql)
+        self.connection.commit()
+        return self.get_redflag_by_id('redflags', 'redflag_id', id)
 
     def update_role(self, id):
         query = """UPDATE users SET is_admin = {}
                     WHERE user_id ='{}' """.format(True, id)
         self.cursor.execute(query)
         self.connection.commit()
-
-    def revoke_admin_previledges(self, id):
-        query = """UPDATE users SET is_admin = {}
-                    WHERE user_id ='{}' """.format(False, id)
-        self.cursor.execute(query)
-        self.connection.commit()
-
-    def delete_table_column(self, table_name, table_colum, id):
-        delete_query = "DELETE from {} WHERE {} = '{}';".format(
-            table_name, table_colum, id)
-        self.cursor.execute(delete_query)
-        self.connection.commit()
-
-    def change_present_location(self, location, redflag_id):
-        query = "UPDATE  redflags SET location = '{}' WHERE redflag_id ={};".format(location, redflag_id)
-        self.cursor.execute(query)
-        self.connection.commit()
-
-    def cancel_redflag(self, id):
-        sql = "UPDATE redflags SET status='{}' WHERE redflag_id = '{}'".format('cancelled', id)
-        self.cursor.execute(sql)
-        self.connection.commit()
-        return self.get_redflag_by_value('redflags', 'redflag_id', id)
-
+    
     def is_redflag_owner(self, redflag_id, user_id):
         sql = "SELECT user_id FROM redflags WHERE user_id ='{}'".format(user_id)
         self.cursor.execute(sql)
@@ -192,21 +172,8 @@ class Database(object):
             return True
         return False
 
-    def drop_tables(self):
-        drop_query = "DROP TABLE IF EXISTS {0} CASCADE"
-        tables = ["users", "redflags"]
-        for table in tables:
-            self.cursor.execute(drop_query.format(table))
-
     def isAdmin(self, user_id):
         sql = "SELECT isAdmin from users WHERE user_id ={}".format(user_id)
-        self.cursor.execute(sql)
-        self.connection.commit()
-        results = self.cursor.fetchone()
-        return results[0]
-
-    def get_user_email(self, user_id):
-        sql = "SELECT email from users WHERE user_id ={}".format(user_id)
         self.cursor.execute(sql)
         self.connection.commit()
         results = self.cursor.fetchone()
@@ -217,8 +184,54 @@ class Database(object):
         self.cursor.execute(query)
         self.connection.commit()
 
+    def get_redflag_owner_id(self, id):
+        query = "SELECT user_id FROM redflags WHERE redflag_id={}".format(id)
+        self.cursor.execute(query)
+        self.connection.commit()
+        results = self.cursor.fetchone()
+        return results[0]
+    
+    def change_location(self, location, redflag_id):
+        query = "UPDATE  redflags SET location = '{}' WHERE redflag_id ={};".format(location, redflag_id)
+        self.cursor.execute(query)
+        self.connection.commit()
+
+
+
+    # def revoke_admin_previledges(self, id):
+    #     query = """UPDATE users SET is_admin = {}
+    #                 WHERE user_id ='{}' """.format(False, id)
+    #     self.cursor.execute(query)
+    #     self.connection.commit()
+
+    # def delete_table_column(self, table_name, table_colum, id):
+    #     delete_query = "DELETE from {} WHERE {} = '{}';".format(
+    #         table_name, table_colum, id)
+    #     self.cursor.execute(delete_query)
+    #     self.connection.commit()
+
+ 
+
+  
+
+    def drop_tables(self):
+        drop_query = "DROP TABLE IF EXISTS {0} CASCADE"
+        tables = ["users", "redflags"]
+        for table in tables:
+            self.cursor.execute(drop_query.format(table))
+
+
+    def get_user_email(self, user_id):
+        sql = "SELECT email from users WHERE user_id ={}".format(user_id)
+        self.cursor.execute(sql)
+        self.connection.commit()
+        results = self.cursor.fetchone()
+        return results[0]
+
+  
+
     def new_redflag_has_fishy_behaviour(self, user_id, reciever_email, desc):
-        sql = "SELECT * FROM redflags WHERE user_id = {} AND recipient_email= '{}' and redflag_description = '{}'".format(
+        sql = "SELECT * FROM redflags WHERE user_id = {} AND recipient_email= '{}' and description = '{}'".format(
             user_id, reciever_email, desc)
         self.cursor.execute(sql)
         self.connection.commit()
@@ -232,10 +245,5 @@ class Database(object):
         results = self.cursor.fetchone()
         return results[0]
 
-    def get_redflag_owner_id(self, id):
-        query = "SELECT user_id FROM redflags WHERE redflag_id={}".format(id)
-        self.cursor.execute(query)
-        self.connection.commit()
-        results = self.cursor.fetchone()
-        return results[0]
+   
 
