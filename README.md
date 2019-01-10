@@ -1,3 +1,4 @@
+[![Maintainability](https://api.codeclimate.com/v1/badges/3082a200ffdd74f93384/maintainability)](https://codeclimate.com/github/natalie-abbie/iReport/maintainability)
 # IReporter
 
 The iReporter api enables users to register and login to the platform with their correct creditials inorder to report a redf flag or an intervention in line with corruption
